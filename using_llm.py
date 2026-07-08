@@ -2,9 +2,11 @@ import os
 import subprocess
 import glob
 import sys
+import time
 from google import genai
 from google.genai import types
-from check import compare_traces
+from google.genai.errors import APIError
+from file_check import compare_traces
 
 
 file_given =False
@@ -12,8 +14,8 @@ file_given =False
 # Initialize the Gemini Client (Make sure GEMINI_API_KEY is set in your environment)
 client = genai.Client()
 
-prgm_name=input("Enter the name of the program: ") #Will change this after connecting the script directly to Ghidra
-target_workspace = os.path.expanduser(f"~/Desktop/{prgm_name}")
+prgm_name=input("Enter the name of the program: ")
+target_workspace = os.path.expanduser(f"~/Desktop/{prgm_name}_folder")
 
 if os.path.exists(target_workspace)==False:
     print(f"[-] Workspace directory {target_workspace} not found.")
@@ -26,8 +28,8 @@ if os.path.exists(memory_header_path):
     with open(memory_header_path, 'r') as f:
         global_memory_context = f.read()
 
-    #Collect all extracted function data
 
+ # Collect all extracted function data
 functions_payload = []
 c_files = glob.glob(os.path.join(target_workspace, "C_code", "*.txt"))
     
@@ -43,13 +45,13 @@ for c_file in c_files:
         with open(asmbly_file, 'r') as f:
             assembly_code = f.read()
                 
-        # Structure each function into an XML-like block for clear LLM parsing
-
+    # Structure each function into an XML-like block for clear LLM parsing
     functions_payload.append(
         f"=== FUNCTION: {func_name} ===\n"
         f"--- DECOMPILED C ---\n{decompiled_c}\n"
         f"--- DISASSEMBLY ---\n{assembly_code}\n"
         )
+
 
 
 def sanitize_code(raw_text):
@@ -62,10 +64,12 @@ def sanitize_code(raw_text):
     return raw_text.strip()
 
 
-#Function sending all the required files to the LLM for the first run
+
+#Function sending all the required files to the LLM 
 def bundle_and_analyze():
-  
-#Construct a unified system instruction and prompt payload for the first run
+   
+
+    #Construct a unified system instruction and prompt payload
     system_instruction = (
         "You are an expert reverse engineer and static binary analysis agent. "
         "Your task is to analyze the provided decompiled C code, disassembly, and global memory mappings "
@@ -81,30 +85,45 @@ def bundle_and_analyze():
         
     )
 
-    #Fire the single payload to Gemini Pro
-
-    print("[*] Dispatching consolidated binary context to Gemini Pro...")
-    response_stream = client.models.generate_content_stream(
-        model='gemini-3.5-flash', # Or your specific Gemini Pro tier model
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            temperature=0.2 # Low temperature keeps binary logic reconstruction precise
-        )
-    )
-
-
-    #This shows the response for the LLM
-    #Comment it out if you dont wanna see them
-    full_response_text = ""
-    print("\n--- [LIVE STREAMING RESPONSE START] ---")
-    for chunk in response_stream:
-        if chunk.text:
-            print(chunk.text, end="", flush=True)
-            full_response_text += chunk.text
-    print("\n--- [LIVE STREAMING RESPONSE END] ---\n")
     
-    return full_response_text
+    #Fire the single payload to Gemini Pro
+    print("[*] Dispatching consolidated binary context to Gemini Pro...")
+    count=1
+    while True:
+        if count==3:
+            print("[-] Failed after 3 tries. Dont want to waste the Tokens.\n Try again after a few time :'(")
+            sys.exit(1)
+        try:
+            response_stream = client.models.generate_content_stream(
+                model='gemini-3.5-flash', # Or your specific Gemini Pro tier model
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=0.2 # Low temperature keeps binary logic reconstruction precise
+                )
+            )
+
+            full_response_text = ""
+            print("\n--- [LIVE STREAMING RESPONSE START] ---")
+            for chunk in response_stream:
+                if chunk.text:
+                    print(chunk.text, end="", flush=True)
+                    full_response_text += chunk.text
+            print("\n--- [LIVE STREAMING RESPONSE END] ---\n")
+            return full_response_text
+        
+        except APIError as e:
+            print(f"[-] API Error Status Code: {e.code}. Message: {e.message}")
+            if e.code ==503:
+                print("[*] Server busy or rate limited. Sleeping for 60 seconds before retrying...")
+                time.sleep(60)
+                continue  # Retry generation payload loop
+            else:
+                print("[-] Fatal API Error encountered. Exiting.")
+                sys.exit(1)
+
+    
+    
 
 
 
@@ -134,31 +153,47 @@ def error_check(error):
         "Provide only the clean program in C++ programming language starting directly with the syntax."
     )
 
-    response_stream = client.models.generate_content_stream(
-        model='gemini-3.5-flash', # Or your specific Gemini Pro tier model
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            temperature=0.2 # Low temperature keeps binary logic reconstruction precise
-        )
-    )
+    count=1
+    while True:
+        if count==3:
+            print("[-] Failed after 3 tries. Dont want to waste the Tokens.\n Try again after a few time :'(")
+            sys.exit(1)
+        try:
+            response_stream = client.models.generate_content_stream(
+                model='gemini-3.5-flash', # Or your specific Gemini Pro tier model
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=0.2 # Low temperature keeps binary logic reconstruction precise
+                )
+            )
 
+            full_response_text = ""
+            print("\n--- [LIVE STREAMING RESPONSE START] ---")
+            for chunk in response_stream:
+                if chunk.text:
+                    print(chunk.text, end="", flush=True)
+                    full_response_text += chunk.text
+            print("\n--- [LIVE STREAMING RESPONSE END] ---\n")
+            
+            return full_response_text
     
-    #This shows the response for the LLM
-    #Comment it out if you dont wanna see them
-    full_response_text = ""
-    print("\n--- [LIVE STREAMING RESPONSE START] ---")
-    for chunk in response_stream:
-        if chunk.text:
-            print(chunk.text, end="", flush=True)
-            full_response_text += chunk.text
-    print("\n--- [LIVE STREAMING RESPONSE END] ---\n")
-    
-    return full_response_text
+        except APIError as e:
+            print(f"[-] API Error Status Code: {e.code}. Message: {e.message}")
+            if e.code ==503:
+                print("[*] Server busy or rate limited. Sleeping for 60 seconds before retrying...")
+                time.sleep(60)
+                continue  # Retry generation payload loop
+            else:
+                print("[-] Fatal API Error encountered. Exiting.")
+                sys.exit(1)
+
+        
+        
+        
 
 
 
-# Running the script
 analysis_result = bundle_and_analyze()
 analysis_result=sanitize_code(analysis_result)
 output_path = os.path.join(target_workspace, "LLM_output.cpp")
@@ -175,7 +210,6 @@ if(file_given):
     while(count<3):
 
         #Compiling the code from the LLM
-
         result=subprocess.run(cmd,shell=True,capture_output=True,text=True)
 
         if result.returncode == 0:
@@ -196,3 +230,29 @@ if(file_given):
     
     else:
         print("[-] Reached maximum compilation repair attempts without resolving errors.")
+
+
+output_path = os.path.join(target_workspace, "LLM_strace.txt")
+    
+
+try:
+        # strace logs system calls to stderr by default
+        # timeout prevents locking up Ghidra if the binary waits for input
+    result = subprocess.run(
+        ["strace", output_path], 
+        capture_output=True, 
+        text=True, 
+        timeout=10 
+    )
+        
+    with open(output_path, "w") as f:
+        f.write(result.stderr)
+                
+    print(f"[+]strace output successfully saved to {output_path}")
+except subprocess.TimeoutExpired:
+    print("[-]strace timed out (likely waiting for user input), saving partial trace.")
+except Exception as e:
+    print(f"[-]Failed to run strace: {str(e)}")
+
+# Compairng the system calls of 
+compare_traces("strace_output.txt", "LLM_strace.txt",f"{target_workspace}")
