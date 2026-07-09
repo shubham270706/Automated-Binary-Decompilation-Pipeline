@@ -28,8 +28,7 @@ if os.path.exists(memory_header_path):
     with open(memory_header_path, 'r') as f:
         global_memory_context = f.read()
 
-
- # Collect all extracted function data
+#Collect all extracted function data
 functions_payload = []
 c_files = glob.glob(os.path.join(target_workspace, "C_code", "*.txt"))
     
@@ -55,6 +54,7 @@ for c_file in c_files:
 
 
 def sanitize_code(raw_text):
+    """Sanitizes the output from the LLM by removing stuff and retains the code"""
     if "```" in raw_text:
         raw_text = raw_text.split("```")[1]
         if raw_text.startswith("cpp"):
@@ -65,11 +65,10 @@ def sanitize_code(raw_text):
 
 
 
-#Function sending all the required files to the LLM 
 def bundle_and_analyze():
-   
-
-    #Construct a unified system instruction and prompt payload
+    """Forwards the C-code, Assembly code and the Global Memory as context to the LLM"""
+  
+    # Construct a unified system instruction and prompt payload
     system_instruction = (
         "You are an expert reverse engineer and static binary analysis agent. "
         "Your task is to analyze the provided decompiled C code, disassembly, and global memory mappings "
@@ -85,9 +84,8 @@ def bundle_and_analyze():
         
     )
 
-    
-    #Fire the single payload to Gemini Pro
-    print("[*] Dispatching consolidated binary context to Gemini Pro...")
+    # Fire the single payload to the LLM
+    print("[*] Dispatching consolidated binary context to LLM...")
     count=1
     while True:
         if count==3:
@@ -95,7 +93,7 @@ def bundle_and_analyze():
             sys.exit(1)
         try:
             response_stream = client.models.generate_content_stream(
-                model='gemini-3.5-flash', # Or your specific Gemini Pro tier model
+                model='gemini-3.5-flash', # CHANGE THIS TO YOUR DESIRED GEMINI MODEL
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
@@ -115,8 +113,8 @@ def bundle_and_analyze():
         except APIError as e:
             print(f"[-] API Error Status Code: {e.code}. Message: {e.message}")
             if e.code ==503:
-                print("[*] Server busy or rate limited. Sleeping for 60 seconds before retrying...")
-                time.sleep(60)
+                print("[*] Server busy. Sleeping for 30 seconds before retrying...")
+                time.sleep(30)
                 continue  # Retry generation payload loop
             else:
                 print("[-] Fatal API Error encountered. Exiting.")
@@ -127,8 +125,8 @@ def bundle_and_analyze():
 
 
 
-#Function which uses API to send the code along with the error message
-def error_check(error):
+def error_fix(error):
+    """Forwards the Error, and all necessary details to the LLM to fix the compilation problem"""
     code_path = os.path.join(target_workspace, "LLM_output.cpp")
     code = ""
 
@@ -156,11 +154,11 @@ def error_check(error):
     count=1
     while True:
         if count==3:
-            print("[-] Failed after 3 tries. Dont want to waste the Tokens.\n Try again after a few time :'(")
+            print("[-] Failed after 3 tries. Dont want to waste the Tokens.\n Try again after some time")
             sys.exit(1)
         try:
             response_stream = client.models.generate_content_stream(
-                model='gemini-3.5-flash', # Or your specific Gemini Pro tier model
+                model='gemini-3.5-flash', # CHANGE THIS TO YOUR DESIRED GEMINI MODEL
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
@@ -181,8 +179,8 @@ def error_check(error):
         except APIError as e:
             print(f"[-] API Error Status Code: {e.code}. Message: {e.message}")
             if e.code ==503:
-                print("[*] Server busy or rate limited. Sleeping for 60 seconds before retrying...")
-                time.sleep(60)
+                print("[*] Server busy. Sleeping for 30 seconds before retrying...")
+                time.sleep(30)
                 continue  # Retry generation payload loop
             else:
                 print("[-] Fatal API Error encountered. Exiting.")
@@ -193,7 +191,7 @@ def error_check(error):
         
 
 
-
+# Running the script
 analysis_result = bundle_and_analyze()
 analysis_result=sanitize_code(analysis_result)
 output_path = os.path.join(target_workspace, "LLM_output.cpp")
@@ -207,7 +205,7 @@ file_given=True
 if(file_given):
     count =0
     cmd = f"g++ {os.path.join(target_workspace, 'LLM_output.cpp')} -o {os.path.join(target_workspace, 'LLM_output')}"
-    while(count<3):
+    while(count<3): #CHANGE THIS TO MODIFY THE NUMBER OF ATTEMPTS
 
         #Compiling the code from the LLM
         result=subprocess.run(cmd,shell=True,capture_output=True,text=True)
@@ -220,7 +218,7 @@ if(file_given):
             count += 1
             print(f"[-] Error detected (Attempt {count}/3)... Forwarding to LLM.")
             print(f"The error is: {result.stderr}")
-            analysis_result = error_check(result.stderr)
+            analysis_result =error_fix(result.stderr)
             analysis_result=sanitize_code(analysis_result)
 
             # Saving the fixed code inline
@@ -232,12 +230,12 @@ if(file_given):
         print("[-] Reached maximum compilation repair attempts without resolving errors.")
 
 
-output_path = os.path.join(target_workspace, "LLM_strace.txt")
-    
+output_path = os.path.join(target_workspace, "LLM_output")
+trace_output=os.path.join(target_workspace, "LLM_strace.txt")
 
 try:
-        # strace logs system calls to stderr by default
-        # timeout prevents locking up Ghidra if the binary waits for input
+    # strace logs system calls to stderr by default
+    # timeout prevents locking up Ghidra if the binary waits for input
     result = subprocess.run(
         ["strace", output_path], 
         capture_output=True, 
@@ -245,14 +243,14 @@ try:
         timeout=10 
     )
         
-    with open(output_path, "w") as f:
+    with open(trace_output, "w") as f:
         f.write(result.stderr)
                 
-    print(f"[+]strace output successfully saved to {output_path}")
+    print(f"[+]strace output successfully saved to {trace_output}")
 except subprocess.TimeoutExpired:
     print("[-]strace timed out (likely waiting for user input), saving partial trace.")
 except Exception as e:
     print(f"[-]Failed to run strace: {str(e)}")
 
-# Compairng the system calls of 
+# Comparing the system calls of both the binary files
 compare_traces("strace_output.txt", "LLM_strace.txt",f"{target_workspace}")
