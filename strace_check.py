@@ -1,15 +1,22 @@
-import difflib
-import re
-import os
+#@author: Shubham Mahato (oopsiedoopsie)
+#@github: https://github.com/shubham270706
+#@LinkedIN: https://www.linkedin.com/in/shubham-mahato-0ba387299/
+#@Discord: oopsie_doopsie224
 
-###---------------------------Awaiting future changes which will include more robust compaprison and mismatch calculation-------------------------------###
+import difflib
+from colorama import Fore,init
+import os
+import re
+
+init(autoreset=True)
+
 def normalize_strace(filepath, target_workspace):
     """Reads an strace log and strips out volatile data like memory addresses."""
     cleaned_lines = []
 
     filepath = os.path.expanduser(f"{target_workspace}/{filepath}")
 
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         for line in f:
             line = line.strip()
             # Drop strace attachment messages/empty lines
@@ -21,7 +28,6 @@ def normalize_strace(filepath, target_workspace):
             ):
                 continue
 
-            # SPECIFIC PATTERN MATCHING FIRST (Before general hex wiping)
 
             # Fine-tune execve: Strip binary path, array references, and environment variable counts
             if line.startswith("execve("):
@@ -99,27 +105,25 @@ def compare_traces(orig_path, llm_path, target_workspace):
     ]
 
     print("\n" + "-" * 50)
-    print("        BEHAVIORAL STRUCTURAL ANALYSIS")
+    print("        BEHAVIORAL STRUCTURAL ANALYSIS\n")
     
     if orig_tokens and llm_tokens:
         similarity_score = calculate_fuzzy_similarity(orig_tokens, llm_tokens)
         print(f"Total Trace Tokens (ORIG): {len(orig_tokens)}")
         print(f"Total Trace Tokens (LLM) : {len(llm_tokens)}")
-        print(f"True Logic Similarity Score : {similarity_score:.2f}%")
+        print(Fore.GREEN+f"True Logic Similarity Score : {similarity_score:.2f}%")
 
         if similarity_score >= 85.0:
-            print(
-                "Verdict: HIGH STRUCTURAL SIMILARITY. Line mismatches in the file are \nlikely superficial compiler/linker loading configuration differences."
-            )
+            print(Fore.GREEN+"\n[+] Verdict: HIGH STRUCTURAL SIMILARITY")
         else:
             print(
-                "Verdict: TRUE LOGIC DEVIATION. The binary execution paths \ndiverge significantly."
+                Fore.LIGHTYELLOW_EX+"[*] Verdict: TRUE LOGIC DEVIATION. The binary execution paths \ndiverge significantly."
             )
     else:
-        print("**Error:** Unable to extract syscall tokens for similarity score.")
+        print(Fore.RED+"[-] Error: Unable to extract syscall tokens for similarity score.")
     print("-" * 50 + "\n")
 
-    print("The mismatches are saved in comparison_result.txt for reference")
+    print("[*] The mismatches (if any) are saved in comparison_result.txt for reference")
 
 
     cmpr_file_path=os.path.join(target_workspace, "comparison_result.txt")
@@ -150,8 +154,8 @@ def compare_traces(orig_path, llm_path, target_workspace):
             for extra_line in longer_trace[min_len : min_len + 3]:
                 f.write(f"    -> {extra_line}\n")
 
-        if mismatches == 0 and len(orig_trace) == len(llm_trace):
+        if mismatches == 0:
             f.write(" Success: Both binaries executed identical system call sequences!\n")
         else:
             f.write(f"\n Found {mismatches} distinct behavior deviations.\n")
-
+    
