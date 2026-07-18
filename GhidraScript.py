@@ -1,4 +1,4 @@
-#@author Shubham Mahato (aka oopsiedoopsie)
+#@author Shubham Mahato (oopsiedoopsie)
 #@category _NEW_
 #@keybinding 
 #@menupath 
@@ -23,38 +23,39 @@ flat_api = FlatProgramAPI(currentProgram)
 
 if not os.path.exists(target_dir):
     os.makedirs(target_dir)
-    print("[+]Directory created successfully")
-else:
-    print("[+]Directory already present")
+
 
 
 
 output_path = os.path.join(target_dir, "strace_output.txt")
-    
+subprocess.run(["chmod","+x",prgm_path])    
 
 try:
-        # strace logs system calls to stderr by default
-        # timeout prevents locking up Ghidra if the binary waits for input
+    # strace logs system calls to stderr by default
     result = subprocess.run(
         ["strace", prgm_path], 
-        capture_output=True, 
-        text=True, 
-        timeout=10 
+        input=b"0\n",                  # <-- Sends the character '0' and a newline as raw bytes
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=10
     )
+
+    stderr_str = result.stderr.decode('utf-8', errors='ignore')
+    with open(output_path, "w") as f:
+        f.write(stderr_str)
+
+
+except subprocess.TimeoutExpired as e: # <-- Capture the exception object 'e'
+    if e.stderr:
+        partial_stderr = e.stderr.decode('utf-8', errors='ignore')
+    else:
+        partial_stderr = "// Trace timed out before data could be captured.\n"
         
     with open(output_path, "w") as f:
-        f.write(result.stderr)
-                
-    print(f"[+]strace output successfully saved to {output_path}")
-except subprocess.TimeoutExpired:
-    print("[-]strace timed out (likely waiting for user input), saving partial trace.")
-except Exception as e:
-    print(f"[-]Failed to run strace: {str(e)}")
-
-
+        f.write(partial_stderr)
+        
 
 def export_global_memory_segments(target_dir):
-    flag=False
     memory = currentProgram.getMemory()
     header_content = "// Global Memory Segment Address Mapping Dump\n\n"
     
@@ -74,12 +75,9 @@ def export_global_memory_segments(target_dir):
                     header_content += f"// SIZE: {size} bytes\n"
                     header_content += f"unsigned char MEM_{block_clean}[] = {{ {', '.join(hex_vals)} }};\n"
                     header_content += f"#define BASE_{block_clean} 0x{str(start_addr)}\n\n"
-                    flag=True
                     
             except Exception as e:
                 header_content += f"// Failed to export block {block.getName()}: {str(e)}\n\n"
-    if flag:
-        print("[+]Memory segments successfully saved")
                 
     output_path = os.path.join(target_dir, "global_memory.h")
     with open(output_path, 'w') as f:
@@ -144,5 +142,3 @@ for func in functions_iterator:
             assembly_string = code_unit_formatter.getRepresentationString(inst)
             
             file.write(f"{addr}  {hex_bytes:<14}  {assembly_string}\n")
-print("[+]Decompiled C code successfully saved")
-print("[+]Assembly code successfully saved")
