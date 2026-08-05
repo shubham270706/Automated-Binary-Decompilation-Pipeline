@@ -35,3 +35,7 @@ read -rp "Enter your Gemini API Key:" api_key
 echo "export GEMINI_API_KEY=$api_key" >> "$HOME"/.bashrc
 echo "Do check out the file 'LLM_stuff.py' file and verify the LLM Model used."
 echo "The functions 'LLM_request_for_c_code_analyze()' and 'LLM_request_for_error()'"
+
+
+chmod +x auto-bdp.py
+sudo ln -s /home/shubham/Desktop/Automated-Binary-Decompilation-Pipeline/auto-bdp.py /usr/local/bin/AutoBDP
