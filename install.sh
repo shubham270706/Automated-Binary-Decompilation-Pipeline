@@ -16,7 +16,7 @@ CURRENT_DIR="$PWD"
 if [[ "$CURRENT_DIR" != *Desktop* ]]; then
     echo "[-] I thought I told you to install in the Desktop Directory. Fine... I'll do it myself."
     echo "[*] Copying all the files to $REAL_HOME/Desktop/"
-    cp -r "$CURRENT_DIR" "$REAL_HOME/Desktop/"
+    mv -r "$CURRENT_DIR" "$REAL_HOME/Desktop/"
 fi
 
 # Code to check for Ghidra
@@ -38,6 +38,7 @@ gzip -f /usr/local/share/man/man1/AutoBDP.1
 echo "[*] Installing python dependencies..."
 apt-get update -y
 apt-get install -y python3-colorama
+apt-get install pip
 sudo -u "$REAL_USER" pip install --user google-genai --break-system-packages
 
 # Code to fix the Gemini API Key
@@ -52,6 +53,6 @@ echo "The functions 'LLM_request_for_c_code_analyze()' and 'LLM_request_for_erro
 echo "[*] Finalizing installation..."
 chmod +x "$PROJECT_DIR/auto-bdp.py"
 ln -sf "$PROJECT_DIR/auto-bdp.py" /usr/local/bin/AutoBDP
-source "$REAL_HOME/.bashrc"
+source $REAL_HOME/.bashrc
 
 echo "[+] Installation complete!"
