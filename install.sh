@@ -57,6 +57,5 @@ echo "The functions 'LLM_request_for_c_code_analyze()' and 'LLM_request_for_erro
 echo "[*] Finalizing installation..."
 chmod +x "$PROJECT_DIR/auto-bdp.py"
 ln -sf "$PROJECT_DIR/auto-bdp.py" /usr/local/bin/AutoBDP
-source $REAL_HOME/.bashrc
 
-echo "[+] Installation complete!"
+echo "[+] Installation complete! Please run 'source ~/.bashrc' or open a new terminal to apply the API key."
