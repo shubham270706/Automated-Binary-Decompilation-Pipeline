@@ -16,7 +16,7 @@ CURRENT_DIR="$PWD"
 if [[ "$CURRENT_DIR" != *Desktop* ]]; then
     echo "[-] I thought I told you to install in the Desktop Directory. Fine... I'll do it myself."
     echo "[*] Copying all the files to $REAL_HOME/Desktop/"
-    mv -r "$CURRENT_DIR" "$REAL_HOME/Desktop/"
+    mv "$CURRENT_DIR" "$REAL_HOME/Desktop/"
 fi
 
 # Code to check for Ghidra
