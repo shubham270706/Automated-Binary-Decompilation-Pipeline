@@ -39,6 +39,7 @@ echo "[*] Installing python dependencies..."
 apt-get update -y
 apt-get install -y python3-colorama
 apt-get install pip
+apt-get install python3-venv
 apt-get install default-jdk
 sudo -u "$REAL_USER" pip install --user google-genai --break-system-packages
 echo "[*] Setting up Ghidra Headless Mode"
