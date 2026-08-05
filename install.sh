@@ -21,10 +21,14 @@ else
     exit 1
 fi
 
-#Defining the Manual 
+#Defining the Manual
 mkdir -p /usr/local/share/man/man1/
 cp ~/Desktop/Automated-Binary-Decompilation-Pipeline/AutoBDP.1 /usr/local/share/man/man1/
 gzip /usr/local/share/man/man1/AutoBDP.1
+
+#Installing pip dependencies
+pip install colorama --break-system-packages
+pip install difflab --break-system-packages
 
 #Code to fix the Gemini API Key
 read -rp "Enter your Gemini API Key:" api_key
