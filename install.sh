@@ -38,13 +38,13 @@ gzip -f /usr/local/share/man/man1/AutoBDP.1
 echo "[*] Installing python dependencies..."
 apt-get update -y
 apt-get install -y python3-colorama
-# Note: difflib is built into Python, no installation required.
+sudo -u "$REAL_USER" pip install --user google-genai --break-system-packages
 
 # Code to fix the Gemini API Key
 echo "[*] Configuring Gemini API Key..."
-read -rp "Enter your Gemini API Key: " api_key
+read -rp "[*]Enter your Gemini API Key: " api_key
 # Injecting into the actual user's bashrc, not root's bashrc
-echo "export GEMINI_API_KEY=$api_key" >> "$REAL_HOME/.bashrc"
+echo "export GEMINI_API_KEY='$api_key'" >> "$REAL_HOME/.bashrc"
 echo "Do check out the file 'LLM_stuff.py' file and verify the LLM Model used."
 echo "The functions 'LLM_request_for_c_code_analyze()' and 'LLM_request_for_error()'"
 
