@@ -1,6 +1,8 @@
 
 # Automated-Binary-Decompilation-Pipeline
 
+![zero](assets/zeroth.png)
+
 AutoBDP is an automated reverse engineering framework that turns raw binaries back into compilable C code. It pairs headless Ghidra extraction with LLM code synthesis, automatically fixes syntax errors through a GCC compilation loop, and uses `strace` system call diffing to make sure the generated code behaves identically to the original binary.
 
 Who it's for: Security researchers, CTF players, malware analysts, and anyone for that matters, who wants to skip the manual decompilation grind and jump straight to working, readable source code.
@@ -10,8 +12,9 @@ Who it's for: Security researchers, CTF players, malware analysts, and anyone fo
 1. Get your Gemini-API Key at https://aistudio.google.com/
 
 2. Copy the repo to Desktop
-```bash
+```text
 git clone https://github.com/shubham270706/Automated-Binary-Decompilation-Pipeline.git
+
 cd Automated-Binary-Decompilation-Pipeline
 ```
 3. Run the Installation Script
@@ -45,10 +48,13 @@ AutoBDP
     
 ## Usage
 Run `AutoBDP` and then enter the path to the binary file.
-![First_Pic](path_to_pic)
+![First_Pic](assets/first.png)
 
 Choose the necessary options:
-![All the pics](path_to_the_pics)
+![second](assets/second.png)
+
+
+![third](assets/third.png)
 
 ## Contributing
 
