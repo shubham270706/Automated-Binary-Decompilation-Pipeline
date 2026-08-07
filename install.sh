@@ -50,9 +50,11 @@ echo "[*] Configuring Gemini API Key..."
 read -rp "[*]Enter your Gemini API Key: " api_key
 # Injecting into the actual user's bashrc, not root's bashrc
 echo "export GEMINI_API_KEY='$api_key'" >> "$REAL_HOME/.bashrc"
-echo "Do check out the file 'LLM_stuff.py' file and verify the LLM Model used."
-echo "The functions 'LLM_request_for_c_code_analyze()' and 'LLM_request_for_error()'"
-
+echo
+echo
+echo "[*]Do check out the file 'LLM_stuff.py' file and verify the LLM Model used."
+echo "[*]The functions 'LLM_request_for_c_code_analyze()' and 'LLM_request_for_error()'"
+echo
 # Setting permissions and symlink
 echo "[*] Finalizing installation..."
 chmod +x "$PROJECT_DIR/auto-bdp.py"
