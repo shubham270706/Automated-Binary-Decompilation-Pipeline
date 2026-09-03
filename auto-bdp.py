@@ -74,9 +74,9 @@ if(os.path.exists(LLM_stuff.target_workspace)):
         case "1":
             print(Fore.LIGHTYELLOW_EX+"[*] Deleting the pre-existing directory...")
             shutil.rmtree(os.path.expanduser(LLM_stuff.target_workspace))
-            cmd1 = f"/snap/ghidra/current/ghidra_12.1_PUBLIC/support/pyghidraRun --headless {project_path} new_project -import {path} -overwrite"
+            cmd1 = f"/snap/ghidra/current/ghidra/support/pyghidraRun --headless {project_path} new_project -import {path} -overwrite"
 
-            cmd2 = f"/snap/ghidra/current/ghidra_12.1_PUBLIC/support/pyghidraRun --headless {project_path} new_project -process {file_name} -postScript {script_path}"
+            cmd2 = f"/snap/ghidra/current/ghidra/support/pyghidraRun --headless {project_path} new_project -process {file_name} -postScript {script_path}"
 
             print(Fore.LIGHTYELLOW_EX+"[*] Importing the file in Ghidra...")
             result1=subprocess.run(cmd1, shell=True, capture_output=True, text=True)
@@ -98,9 +98,9 @@ if(os.path.exists(LLM_stuff.target_workspace)):
             
 
 else:
-    cmd1 = f"/snap/ghidra/current/ghidra_12.1_PUBLIC/support/pyghidraRun --headless {project_path} new_project -import {path} -overwrite"
+    cmd1 = f"/snap/ghidra/current/ghidra/support/pyghidraRun --headless {project_path} new_project -import {path} -overwrite"
 
-    cmd2 = f"/snap/ghidra/current/ghidra_12.1_PUBLIC/support/pyghidraRun --headless {project_path} new_project -process {file_name} -postScript {script_path}"
+    cmd2 = f"/snap/ghidra/current/ghidra/support/pyghidraRun --headless {project_path} new_project -process {file_name} -postScript {script_path}"
 
     print(Fore.LIGHTYELLOW_EX+"[*] Importing the file in Ghidra...")
     result1=subprocess.run(cmd1, shell=True, capture_output=True, text=True)
