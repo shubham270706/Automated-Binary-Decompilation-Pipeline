@@ -6,7 +6,6 @@
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
 # version 2.1 of the License, or (at your option) any later version.
-#
 
 import os
 import re
@@ -409,10 +408,15 @@ class AutoBDPGui:
             path = Path(raw_path).expanduser().absolute()
             file_name = path.name
 
-            script_dir = os.path.dirname(os.path.abspath(__file__))
+            script_dir = os.path.dirname(os.path.realpath(__file__))
             script_path = os.path.join(script_dir, "GhidraScript.py")
             project_path = os.path.expanduser("~")
-
+            
+            if not os.path.exists(script_path):
+                print(Fore.RED + f"[-] GhidraScript.py not found at {script_path}")
+                print(Fore.RED + "    -postScript will silently fail to run if this path is wrong.")
+                return
+            
             import LLM_stuff
             from pre_run_checks import run_script
 
