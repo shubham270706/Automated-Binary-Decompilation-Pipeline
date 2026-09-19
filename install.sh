@@ -52,7 +52,14 @@ cp "$PROJECT_DIR/AutoBDP.1" /usr/local/share/man/man1/
 # Added -f to prevent hanging on overwrite if run twice
 gzip -f /usr/local/share/man/man1/AutoBDP.1
 
-# Installing dependencies safely via apt instead of breaking pip
+echo "   [Desktop Entry]
+   Name=AutoBDP
+   Exec=python3 /home/shubham/Desktop/Automated-Binary-Decompilation-Pipeline/gui.py
+   Icon=/home/shubham/Desktop/Automated-Binary-Decompilation-Pipeline/assets/icon.png
+   Type=Application
+   StartupWMClass=AutoBDP" >> $REAL_HOME/.local/share/applications/autobdp.desktop
+
+
 echo "[*] Installing python dependencies..."
 apt-get update -y
 apt-get install -y python3-colorama
@@ -66,7 +73,6 @@ sudo -u "$REAL_USER" /snap/ghidra/current/ghidra/support/pyghidraRun --headless
 # Code to fix the Gemini API Key
 echo "[*] Configuring Gemini API Key..."
 read -rp "[*]Enter your Gemini API Key: " api_key
-# Injecting into the actual user's bashrc, not root's bashrc
 echo "export GEMINI_API_KEY='$api_key'" >> "$REAL_HOME/.bashrc"
 echo
 echo
@@ -76,6 +82,7 @@ echo
 # Setting permissions and symlink
 echo "[*] Finalizing installation..."
 chmod +x "$PROJECT_DIR/auto-bdp.py"
-ln -sf "$PROJECT_DIR/auto-bdp.py" /usr/local/bin/AutoBDP
+chmod +x "$PROJECT_DIR/gui.py"
+ln -sf "$PROJECT_DIR/gui.py" /usr/local/bin/AutoBDP
 
 echo "[+] Installation complete! Please run 'source ~/.bashrc' or open a new terminal to apply the API key."
