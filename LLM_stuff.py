@@ -29,6 +29,7 @@ from google import genai
 from google.genai import types
 from google.genai.errors import APIError
 from colorama import Fore,init
+import cancel
 init(autoreset=True)
 
 # Initialize the Gemini Client (Make sure GEMINI_API_KEY is set in the environment)
@@ -134,9 +135,10 @@ def LLM_request_for_c_code_analyze():
         f"You need to produce the program which mimics the 'strace' of the original file's given: \n\n{strace_context}\n\n"
         f"The individual extracted functions:\n\n" + "\n".join(functions_payload) + 
         "\n\n Analyze the data and prepare the compilation repair strategies.\n"
-        "Provide only the clean program in specifically C programming language."
+        "Provide only the clean program in the original programming language."
         "Start directly with the code syntax without conversational text or intros."
-        "If it needs any flags while compiling, mention it as the last comment in the program"
+        "Mention the language used and the compiler needed to compile it in the comment."
+        "If it needs any flags while compiling, mention it as the last comment in the program (do not mention the output file)"
         
     )
 
@@ -145,7 +147,8 @@ def LLM_request_for_c_code_analyze():
     print(Fore.LIGHTYELLOW_EX+"[*] Dispatching consolidated binary context to LLM...")
     count=1
     while True:
-        
+        cancel.check()  # bail out here if a stop was requested between retries
+
         try:
             response_stream = client.models.generate_content_stream(
                 #model='gemini-3.5-flash', # CHANGE THIS TO YOUR DESIRED GEMINI MODEL
@@ -160,6 +163,7 @@ def LLM_request_for_c_code_analyze():
             full_response_text = ""
             print("\n--- [LIVE STREAMING RESPONSE START] ---")
             for chunk in response_stream:
+                cancel.check()  # bail out mid-stream if requested, rather than waiting for it to finish
                 if chunk.text:
                     print(chunk.text, end="", flush=True)
                     full_response_text += chunk.text
@@ -174,7 +178,7 @@ def LLM_request_for_c_code_analyze():
                 if count==4:
                     print(Fore.RED+"[-] Failed after 3 tries. Don't want to waste the Tokens.\n\t Try again after some time")
                     sys.exit(1)
-                time.sleep(30)
+                cancel.sleep_cancellable(30)  # wakes up early (and stops) if requested mid-backoff
                 continue  # Retry generation payload loop
             else:
                 print(Fore.RED+"[-] Fatal API Error encountered. Exiting.")
@@ -210,13 +214,15 @@ def LLM_request_for_error(error):
         f"Produce the program which mimics the 'strace' of the original file's given: \n\n{strace_context}\n\n"
         "Use the original files trace calls to produce the closest file to the original ones"
         "Fix the error while maintaining the underlying binary logic structure. "
-        "Provide only the clean program in specificaly C programming language starting directly with the syntax."
-        "If it needs any flags while compiling, mention it as the last comment in the program"
+        "Mention the language used and the compiler needed to compile it in the comment."
+        "If it needs any flags while compiling, mention it as the last comment in the program (do not mention the output file)"
     )
 
 
     count=1
     while True: 
+        cancel.check()  # bail out here if a stop was requested between retries
+
         try:
             response_stream = client.models.generate_content_stream(
                 #model='gemini-3.5-flash', # CHANGE THIS TO YOUR DESIRED GEMINI MODEL
@@ -232,6 +238,7 @@ def LLM_request_for_error(error):
             full_response_text = ""
             print("\n--- [LIVE STREAMING RESPONSE START] ---")
             for chunk in response_stream:
+                cancel.check()  # bail out mid-stream if requested, rather than waiting for it to finish
                 if chunk.text:
                     print(chunk.text, end="", flush=True)
                     full_response_text += chunk.text
@@ -247,7 +254,7 @@ def LLM_request_for_error(error):
                 if count==4:
                     print(Fore.RED+"[-] Failed after 3 tries. Dont want to waste the Tokens.\n\t Try again after some time")
                     sys.exit(1)
-                time.sleep(30)
+                cancel.sleep_cancellable(30)  # wakes up early (and stops) if requested mid-backoff
                 continue  # Retry generation payload loop
             else:
                 print(Fore.RED+"[-] Fatal API Error encountered. Exiting.")
@@ -270,17 +277,21 @@ def getting_c_prgm_from_LLM():
 
 
 def syntax_error_check():
-    """Compiles the c code and checks for any syntax errors. Inlcudes the LLM loop incase there's any syntax error"""
+    """Compiles the code and checks for any syntax errors. Inlcudes the LLM loop incase there's any syntax error"""
     count =0
     while(count<3): #CHNAGE THIS TO MODIFY THE NUMBER OF ATTEMPTS
-        print(Fore.LIGHTYELLOW_EX+"Enter any additional flags for gcc: ")
+        cancel.check()  # bail out between attempts if a stop was requested
+
+        print(Fore.LIGHTYELLOW_EX+"Enter the compiler name: ")
+        compiler=input()
+        print(Fore.LIGHTYELLOW_EX+f"Enter any additional flags for {compiler}: ")
         options=input()
 
         #Checking for syntax errors in the code given by the LLM
         print("-"*50)
         print("\t\tCOMPILING\n")
         
-        cmd = f"gcc {c_output_from_LLM} -o {os.path.join(target_workspace, 'LLM_output')} {options}"
+        cmd = f"{compiler} {c_output_from_LLM} -o {os.path.join(target_workspace, 'LLM_output')} {options}"
 
         #Compiling the code from the LLM
         result=subprocess.run(cmd,shell=True,capture_output=True,text=True)
@@ -336,4 +347,3 @@ def run_strace():
         
     except Exception as e:
         print(Fore.RED+f"[-] Failed to run strace: {str(e)}")
-
