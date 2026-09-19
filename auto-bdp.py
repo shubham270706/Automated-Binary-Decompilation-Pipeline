@@ -45,7 +45,7 @@ def print_banner():
                                                                        
                                                                                                 
                                                     
-            Automated RE Framework v1.0
+            Automated RE Framework v1.1
             Created by: Shubham Mahato (oopsiedoopsie)
             Github: https://github.com/shubham270706
             Discord: oopsie_doopsie224"""
