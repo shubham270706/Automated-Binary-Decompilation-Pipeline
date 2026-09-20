@@ -5,6 +5,10 @@
 
 AutoBDP is an automated reverse engineering framework that turns raw binaries back into compilable C code. It pairs headless Ghidra extraction with LLM code synthesis, automatically fixes syntax errors through a GCC compilation loop, and uses `strace` system call diffing to make sure the generated code behaves identically to the original binary.
 
+It's available two ways:
+- **GUI** — a desktop app with a colorized live console, file picker, and Stop/Exit controls, no terminal shenanigans required.
+- **CLI** — the original terminal-driven workflow, still fully supported for scripting or headless use.
+
 Who it's for: Security researchers, CTF players, malware analysts, and anyone for that matters, who wants to skip the manual decompilation grind and jump straight to working, readable source code.
 
 ## Installation
@@ -45,16 +49,40 @@ man AutoBDP
 ```
 AutoBDP
 ```
-    
+   The `AutoBDP` command launches the **GUI** by default. If you'd rather use the original terminal-driven workflow, run the CLI script directly from the project directory instead:
+   ```
+   AutoBDP --headless
+   ```
+
 ## Usage
-Run `AutoBDP` and then enter the path to the binary file.
-![First_Pic](assets/first.png)
+
+### GUI
+
+Launch with `AutoBDP` (or `python3 gui.py` from the project directory).
+
+![fourth](assets/fourth.png)
+
+1. Click **Browse...** and select the target binary.
+2. Click **Start Pipeline**. Ghidra import/analysis, LLM synthesis, compilation, and strace comparison all run in the background - progress and output stream into the console live, in color.
+3. Whenever the pipeline needs a decision (resume vs. re-analyze, which compiler to use, etc.), a small popup collects your answer instead of blocking a terminal.
+
+4. Use **Stop** at any point to halt the run - it kills any in-progress Ghidra subprocess immediately and interrupts LLM/compile retry loops at their next checkpoint (it can't forcibly cut off a single in-flight API request, only wait it out).
+5. Use **Exit** to close the app; it'll offer to stop a running pipeline first.
+
+
+Set your Gemini API key for the session from **Settings > Set Gemini API Key** if it isn't already in your environment.
+
+### CLI
+
+Run `AutoBDP --headless` and then enter the path to the binary file.
+![first](assets/first.png)
 
 Choose the necessary options:
 ![second](assets/second.png)
 
 
 ![third](assets/third.png)
+
 
 ## Contributing
 
